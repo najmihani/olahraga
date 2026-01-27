@@ -1,72 +1,185 @@
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
   <meta charset="UTF-8">
-  <title>Pengurus Pasukan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Pengurus Pasukan</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #f8f9fa; padding-top: 20px; }
+    .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: none; }
+    .nav-pills .nav-link.active { background-color: #28a745; font-weight: bold; }
+    .header-info { background: #28a745; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    #loader { display: none; }
+  </style>
 </head>
-<body class="p-4 bg-light">
-  <div class="container">
-    <h3>Panel Pengurus: <span id="namaSekolah" class="text-primary"></span></h3>
-    <hr>
-    <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-      <li class="nav-item"><a class="nav-link active" data-toggle="pill" href="#pendaftaran">Daftar Atlet</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="pill" href="#senarai" onclick="muatSenarai()">Senarai Nama</a></li>
-    </ul>
+<body>
 
-    <div class="tab-content">
-      <div class="tab-pane fade show active" id="pendaftaran">
-        <form id="formDaftar" class="bg-white p-4 border rounded">
-          <div class="form-group"><label>Nama Atlet</label><input type="text" id="nama" class="form-control" required></div>
-          <div class="row">
-            <div class="col-md-6 form-group"><label>IC</label><input type="text" id="ic" class="form-control" required></div>
-            <div class="col-md-6 form-group"><label>BIB</label><input type="text" id="bib" class="form-control" required></div>
-          </div>
-          <div class="form-group"><label>Acara</label>
-            <select id="acara" class="form-control" required>
-              <option value="100M">100M</option>
-              <option value="200M">200M</option>
-              <option value="Lompat Jauh">Lompat Jauh</option>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-success btn-block">Simpan Pendaftaran</button>
-        </form>
+<div class="container">
+  <div class="header-info d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0">PANEL PENGURUS PASUKAN</h4>
+      <p class="mb-0">Sekolah: <span id="displaySekolah">...</span></p>
+    </div>
+    <button class="btn btn-light btn-sm font-weight-bold" onclick="logout()">LOG KELUAR</button>
+  </div>
+
+  <ul class="nav nav-pills nav-fill mb-4" id="pills-tab" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="pills-daftar-tab" data-toggle="pill" href="#pills-daftar" role="tab">Daftar Atlet</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="pills-senarai-tab" data-toggle="pill" href="#pills-senarai" role="tab" onclick="muatSenarai()">Senarai Atlet</a>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="pills-tabContent">
+    <div class="tab-pane fade show active" id="pills-daftar" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <form id="formDaftar">
+            <div class="form-group">
+              <label>Nama Penuh Atlet</label>
+              <input type="text" id="nama" class="form-control" placeholder="Contoh: AHMAD BIN ALI" required>
+            </div>
+            <div class="row">
+              <div class="col-md-6 form-group">
+                <label>No. Kad Pengenalan</label>
+                <input type="text" id="ic" class="form-control" placeholder="08010101XXXX" required>
+              </div>
+              <div class="col-md-6 form-group">
+                <label>No. BIB</label>
+                <input type="text" id="bib" class="form-control" placeholder="A101" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Acara</label>
+              <select id="acara" class="form-control" required>
+                <option value="">-- Pilih Acara --</option>
+                <option value="100M">100M (L/P)</option>
+                <option value="200M">200M (L/P)</option>
+                <option value="400M">400M (L/P)</option>
+                <option value="Lompat Jauh">Lompat Jauh</option>
+                <option value="Lontar Peluru">Lontar Peluru</option>
+              </select>
+            </div>
+            <button type="submit" id="btnHantar" class="btn btn-success btn-block py-2">DAFTAR ATLET</button>
+            <div id="loader" class="text-center mt-3"><div class="spinner-border text-success spinner-border-sm"></div> Menyimpan...</div>
+          </form>
+        </div>
       </div>
+    </div>
 
-      <div class="tab-pane fade" id="senarai">
-        <table class="table bg-white">
-          <thead class="thead-dark"><tr><th>Nama</th><th>BIB</th><th>Acara</th></tr></thead>
-          <tbody id="isiJadual"></tbody>
-        </table>
+    <div class="tab-pane fade" id="pills-senarai" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="bg-light">
+                <tr>
+                  <th>Nama Atlet</th>
+                  <th>No. BIB</th>
+                  <th>Acara</th>
+                </tr>
+              </thead>
+              <tbody id="isiJadual">
+                </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzDd9V1HW0qJsPiiwlrFfQdGaQ_VFSwkhHhFhsSANApP6fVMdfAXQmUhNZ3ioy2xzoFqw/exec";
-    const sekolah = sessionStorage.getItem("sekolah");
-    document.getElementById("namaSekolah").innerText = sekolah;
+<script>
+  // 1. GANTIKAN DENGAN URL WEB APP GAS ANDA
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyy-L35pZG5D7c48qimiQSGL0dcMX-pPOMai1evfVb2AqB2wzj5c5teS8gP1m7po54E9g/exec"; 
+  
+  // 2. AMBIL DATA DARI SESSION
+  const namaSekolah = sessionStorage.getItem("sekolah");
 
-    document.getElementById("formDaftar").onsubmit = async (e) => {
-      e.preventDefault();
-      const payload = {
-        nama: document.getElementById("nama").value,
-        ic: document.getElementById("ic").value,
-        bib: document.getElementById("bib").value,
-        acara: document.getElementById("acara").value,
-        sekolah: sekolah
-      };
-      const res = await fetch(`${GAS_URL}?action=daftar`, { method: 'POST', body: JSON.stringify(payload) });
-      const data = await res.json();
-      alert(data.message);
-      document.getElementById("formDaftar").reset();
+  window.onload = () => {
+    if(!namaSekolah) {
+      alert("Sila log masuk semula.");
+      window.location.href = "index.html";
+      return;
+    }
+    document.getElementById("displaySekolah").innerText = namaSekolah;
+  };
+
+  // 3. FUNGSI SIMPAN PENDAFTARAN
+  document.getElementById("formDaftar").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btnHantar");
+    const loader = document.getElementById("loader");
+
+    const payload = {
+      nama: document.getElementById("nama").value.toUpperCase(),
+      ic: document.getElementById("ic").value,
+      bib: document.getElementById("bib").value.toUpperCase(),
+      acara: document.getElementById("acara").value,
+      sekolah: namaSekolah
     };
 
-    async function muatSenarai() {
-      const res = await fetch(`${GAS_URL}?action=getAtlet`, { method: 'POST', body: JSON.stringify({ sekolah: sekolah }) });
-      const data = await res.json();
-      document.getElementById("isiJadual").innerHTML = data.map(r => `<tr><td>${r[0]}</td><td>${r[2]}</td><td>${r[4]}</td></tr>`).join('');
+    btn.disabled = true;
+    loader.style.display = "block";
+
+    try {
+      const response = await fetch(`${GAS_URL}?action=daftar`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      const res = await response.json();
+      alert(res.message);
+      document.getElementById("formDaftar").reset();
+    } catch (err) {
+      alert("Ralat: Gagal menghubungi pangkalan data.");
+    } finally {
+      btn.disabled = false;
+      loader.style.display = "none";
     }
-  </script>
+  };
+
+  // 4. FUNGSI MUAT SENARAI ATLET
+  async function muatSenarai() {
+    const isiJadual = document.getElementById("isiJadual");
+    isiJadual.innerHTML = "<tr><td colspan='3' class='text-center'>Memuatkan data...</td></tr>";
+
+    try {
+      const response = await fetch(`${GAS_URL}?action=getAtlet`, {
+        method: 'POST',
+        body: JSON.stringify({ sekolah: namaSekolah })
+      });
+      const data = await response.json();
+
+      if (data.length === 0) {
+        isiJadual.innerHTML = "<tr><td colspan='3' class='text-center text-muted'>Tiada atlet didaftarkan.</td></tr>";
+        return;
+      }
+
+      let html = "";
+      data.forEach(row => {
+        // row[0] = Nama, row[2] = BIB, row[4] = Acara (mengikut susunan appendRow di GAS)
+        html += `<tr>
+          <td class="font-weight-bold">${row[0]}</td>
+          <td><span class="badge badge-info">${row[2]}</span></td>
+          <td>${row[4]}</td>
+        </tr>`;
+      });
+      isiJadual.innerHTML = html;
+    } catch (err) {
+      isiJadual.innerHTML = "<tr><td colspan='3' class='text-center text-danger'>Ralat memuatkan data.</td></tr>";
+    }
+  }
+
+  function logout() {
+    sessionStorage.clear();
+    window.location.href = "index.html";
+  }
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
