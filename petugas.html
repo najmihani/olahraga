@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Petugas Kejohanan</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+</head>
+<body class="p-4">
+  <div class="container">
+    <div class="alert alert-warning"><h4>Petugas Kejohanan</h4></div>
+    <div class="row mb-4">
+      <div class="col-8">
+        <select id="selAcara" class="form-control">
+          <option value="100M">100M</option>
+          <option value="Lompat Jauh">Lompat Jauh</option>
+        </select>
+      </div>
+      <div class="col-4"><button class="btn btn-primary btn-block" onclick="cariAtlet()">Cari Atlet</button></div>
+    </div>
+
+    <div id="divInput" style="display:none">
+      <table class="table border">
+        <thead><tr><th>Nama / Sekolah</th><th>Catatan</th><th>Rank</th></tr></thead>
+        <tbody id="tbodyPetugas"></tbody>
+      </table>
+      <button class="btn btn-info" onclick="kiraRank()">1. Kira Rank</button>
+      <button class="btn btn-success" id="btnSimpan" disabled onclick="hantar()">2. Simpan</button>
+    </div>
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzDd9V1HW0qJsPiiwlrFfQdGaQ_VFSwkhHhFhsSANApP6fVMdfAXQmUhNZ3ioy2xzoFqw/exec";
+    let atletData = [];
+
+    async function cariAtlet() {
+      const acara = document.getElementById("selAcara").value;
+      const res = await fetch(`${GAS_URL}?action=getAtletAcara`, { method: 'POST', body: JSON.stringify({ acara: acara }) });
+      atletData = await res.json();
+      
+      document.getElementById("tbodyPetugas").innerHTML = atletData.map((a, i) => `
+        <tr>
+          <td>${a.nama}<br><small>${a.sekolah}</small></td>
+          <td><input type="number" step="0.01" class="form-control catatan"></td>
+          <td><input type="text" class="form-control rank" readonly></td>
+        </tr>`).join('');
+      document.getElementById("divInput").style.display = "block";
+    }
+
+    function kiraRank() {
+      const acara = document.getElementById("selAcara").value;
+      const rows = Array.from(document.querySelectorAll("#tbodyPetugas tr"));
+      const skor = rows.map(r => ({ row: r, val: parseFloat(r.querySelector(".catatan").value) || 0 }));
+      
+      // Sort: Larian (rendah ke tinggi), Padang (tinggi ke rendah)
+      if (acara.includes("M")) skor.sort((a,b) => a.val - b.val);
+      else skor.sort((a,b) => b.val - a.val);
+
+      skor.forEach((s, i) => s.row.querySelector(".rank").value = i + 1);
+      document.getElementById("btnSimpan").disabled = false;
+    }
+
+    async function hantar() {
+      const rows = document.querySelectorAll("#tbodyPetugas tr");
+      const data = Array.from(rows).map(r => ({
+        acara: document.getElementById("selAcara").value,
+        nama: r.querySelector("td").innerText.split('\n')[0],
+        sekolah: r.querySelector("small").innerText,
+        catatan: r.querySelector(".catatan").value,
+        kedudukan: r.querySelector(".rank").value
+      }));
+      await fetch(`${GAS_URL}?action=simpanKeputusan`, { method: 'POST', body: JSON.stringify({ data: data }) });
+      alert("Keputusan Disimpan!");
+      location.reload();
+    }
+  </script>
+</body>
+</html>

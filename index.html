@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Masuk - Sistem Olahraga</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f4f7f6; height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    .nav-tabs { border: none; margin-bottom: 20px; }
+    .nav-link { border: none !important; color: #6c757d; font-weight: bold; }
+    .nav-link.active { color: #007bff !important; border-bottom: 3px solid #007bff !important; background: transparent !important; }
+    .btn-primary { border-radius: 8px; padding: 12px; font-weight: bold; }
+    #loader { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <h4 class="text-center mb-4">SISTEM OLAHRAGA</h4>
+  
+  <ul class="nav nav-tabs nav-fill" id="myTab">
+    <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#login">LOG MASUK</a></li>
+    <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#result" onclick="loadResults()">KEPUTUSAN</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="login">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="user" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="pass" class="form-control">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="doLogin()" id="btnText">Masuk</button>
+      <div id="loader" class="text-center mt-3"><div class="spinner-border text-primary"></div></div>
+      <div id="msg" class="text-danger text-center mt-3 small"></div>
+    </div>
+
+    <div class="tab-pane fade" id="result">
+      <div id="resultBox" class="small">Memuatkan data...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // GANTIKAN DENGAN URL WEB APP GAS ANDA
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzDd9V1HW0qJsPiiwlrFfQdGaQ_VFSwkhHhFhsSANApP6fVMdfAXQmUhNZ3ioy2xzoFqw/exec"; 
+
+  async function doLogin() {
+    const user = document.getElementById("user").value;
+    const pass = document.getElementById("pass").value;
+    const msg = document.getElementById("msg");
+    const loader = document.getElementById("loader");
+
+    if(!user || !pass) return msg.innerText = "Sila isi semua ruangan";
+
+    msg.innerText = "";
+    loader.style.display = "block";
+
+    try {
+      const response = await fetch(`${GAS_URL}?action=login`, {
+        method: 'POST',
+        body: JSON.stringify({ username: user, password: pass })
+      });
+      const res = await response.json();
+
+      if (res.status === "success") {
+        sessionStorage.setItem("role", res.role);
+        sessionStorage.setItem("sekolah", res.sekolah);
+        // Hala ke fail mengikut peranan (admin.html, pengurus.html, petugas.html)
+        window.location.href = res.role.toLowerCase() + ".html";
+      } else {
+        loader.style.display = "none";
+        msg.innerText = res.message;
+      }
+    } catch (e) {
+      loader.style.display = "none";
+      msg.innerText = "Ralat pelayan: " + e.message;
+    }
+  }
+
+  async function loadResults() {
+    const box = document.getElementById("resultBox");
+    try {
+      const resp = await fetch(`${GAS_URL}?action=getPingat`, { method: 'POST', body: "{}" });
+      const data = await resp.json();
+      let html = '<table class="table table-sm"><thead><tr><th>Sekolah</th><th>🥇</th><th>🥈</th><th>🥉</th></tr></thead><tbody>';
+      data.forEach(r => {
+        html += `<tr><td>${r.sekolah}</td><td>${r.emas}</td><td>${r.perak}</td><td>${r.gangsa}</td></tr>`;
+      });
+      box.innerHTML = html + '</tbody></table>';
+    } catch (e) { box.innerText = "Gagal memuatkan keputusan."; }
+  }
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+</head>
+<body class="p-4 bg-dark text-white">
+  <div class="container bg-white text-dark p-4 rounded shadow">
+    <h2 class="text-center">DASHBOARD ADMIN</h2>
+    <hr>
+    <h5>Pungutan Pingat Keseluruhan</h5>
+    <table class="table table-bordered mt-3">
+      <thead class="thead-light">
+        <tr><th>Sekolah</th><th>🥇 Emas</th><th>🥈 Perak</th><th>🥉 Gangsa</th></tr>
+      </thead>
+      <tbody id="bodyPingat"></tbody>
+    </table>
+    <button class="btn btn-primary" onclick="loadAdmin()">Refresh Data</button>
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzDd9V1HW0qJsPiiwlrFfQdGaQ_VFSwkhHhFhsSANApP6fVMdfAXQmUhNZ3ioy2xzoFqw/exec";
+    async function loadAdmin() {
+      const res = await fetch(`${GAS_URL}?action=getPingat`, { method: 'POST', body: "{}" });
+      const data = await res.json();
+      document.getElementById("bodyPingat").innerHTML = data.map(d => `
+        <tr><td>${d.sekolah}</td><td>${d.emas}</td><td>${d.perak}</td><td>${d.gangsa}</td></tr>
+      `).join('');
+    }
+    window.onload = loadAdmin;
+  </script>
+</body>
+</html>
