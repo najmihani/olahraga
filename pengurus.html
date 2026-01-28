@@ -55,13 +55,8 @@
             <div class="form-group">
               <label>Acara</label>
               <select id="acara" class="form-control" required>
-                <option value="">-- Pilih Acara --</option>
-                <option value="100M">100M (L/P)</option>
-                <option value="200M">200M (L/P)</option>
-                <option value="400M">400M (L/P)</option>
-                <option value="Lompat Jauh">Lompat Jauh</option>
-                <option value="Lontar Peluru">Lontar Peluru</option>
-              </select>
+                <option value="">-- Memuatkan Acara... --</option>
+                </select>
             </div>
             <button type="submit" id="btnHantar" class="btn btn-success btn-block py-2">DAFTAR ATLET</button>
             <div id="loader" class="text-center mt-3"><div class="spinner-border text-success spinner-border-sm"></div> Menyimpan...</div>
@@ -94,7 +89,7 @@
 
 <script>
   // 1. GANTIKAN DENGAN URL WEB APP GAS ANDA
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbwlyOlL-YJfe1u9bUlf_a26VkN63G15jcdBY2Tz5l_3bwjtp1jPzdanowXffM3Jj2-tag/exec"; 
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyTaXVKrGwtzGIRBFMoJfl64AGZB19aYqLAkGzKAIUB1zS4xRnv0DN44bDpGE2dEzjCkA/exec"; 
   
   // 2. AMBIL DATA DARI SESSION
   const namaSekolah = sessionStorage.getItem("sekolah");
@@ -106,7 +101,29 @@
       return;
     }
     document.getElementById("displaySekolah").innerText = namaSekolah;
+    muatDropdownAcara(); // Panggil fungsi muat acara sebaik sahaja page dibuka
   };
+
+  // FUNGSI BARU: MUAT DROPDOWN ACARA DARI DATABASE
+  async function muatDropdownAcara() {
+    const select = document.getElementById("acara");
+    try {
+      const response = await fetch(`${GAS_URL}?action=getAcara`, { method: 'POST', body: "{}" });
+      const data = await response.json();
+      
+      let html = '<option value="">-- Pilih Acara --</option>';
+      if (data.length === 0) {
+        html = '<option value="">Tiada acara tersedia. Hubungi Admin.</option>';
+      } else {
+        data.forEach(nama => {
+          html += `<option value="${nama}">${nama}</option>`;
+        });
+      }
+      select.innerHTML = html;
+    } catch (err) {
+      select.innerHTML = '<option value="">Ralat memuatkan acara</option>';
+    }
+  }
 
   // 3. FUNGSI SIMPAN PENDAFTARAN
   document.getElementById("formDaftar").onsubmit = async (e) => {
@@ -160,7 +177,6 @@
 
       let html = "";
       data.forEach(row => {
-        // row[0] = Nama, row[2] = BIB, row[4] = Acara (mengikut susunan appendRow di GAS)
         html += `<tr>
           <td class="font-weight-bold">${row[0]}</td>
           <td><span class="badge badge-info">${row[2]}</span></td>
@@ -182,6 +198,4 @@
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>
-
