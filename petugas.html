@@ -1,79 +1,188 @@
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
   <meta charset="UTF-8">
-  <title>Petugas Kejohanan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petugas Kejohanan - Sistem Olahraga</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #fffaf0; padding-top: 20px; }
+    .container { max-width: 800px; }
+    .card { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header-petugas { background: #ffc107; color: #333; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+    .table thead { background: #343a40; color: white; }
+    #loader { display: none; }
+  </style>
 </head>
-<body class="p-4">
-  <div class="container">
-    <div class="alert alert-warning"><h4>Petugas Kejohanan</h4></div>
-    <div class="row mb-4">
-      <div class="col-8">
-        <select id="selAcara" class="form-control">
-          <option value="100M">100M</option>
-          <option value="Lompat Jauh">Lompat Jauh</option>
+<body>
+
+<div class="container">
+  <div class="header-petugas d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0 font-weight-bold">PANEL PETUGAS KEJOHANAN</h4>
+      <p class="mb-0 small">Kemasukan Keputusan Rasmi</p>
+    </div>
+    <button class="btn btn-dark btn-sm" onclick="logout()">LOG KELUAR</button>
+  </div>
+
+  <div class="card p-4 mb-4">
+    <div class="row">
+      <div class="col-md-8 mb-2">
+        <select id="selAcara" class="form-control form-control-lg">
+          <option value="">-- Pilih Acara --</option>
+          <option value="100M">100M (Larian)</option>
+          <option value="200M">200M (Larian)</option>
+          <option value="400M">400M (Larian)</option>
+          <option value="Lompat Jauh">Lompat Jauh (Padang)</option>
+          <option value="Lontar Peluru">Lontar Peluru (Padang)</option>
         </select>
       </div>
-      <div class="col-4"><button class="btn btn-primary btn-block" onclick="cariAtlet()">Cari Atlet</button></div>
+      <div class="col-md-4">
+        <button class="btn btn-primary btn-lg btn-block" onclick="cariAtlet()">CARI ATLET</button>
+      </div>
     </div>
-
-    <div id="divInput" style="display:none">
-      <table class="table border">
-        <thead><tr><th>Nama / Sekolah</th><th>Catatan</th><th>Rank</th></tr></thead>
-        <tbody id="tbodyPetugas"></tbody>
-      </table>
-      <button class="btn btn-info" onclick="kiraRank()">1. Kira Rank</button>
-      <button class="btn btn-success" id="btnSimpan" disabled onclick="hantar()">2. Simpan</button>
+    <div id="loader" class="text-center mt-3">
+      <div class="spinner-border text-warning" role="status"></div>
+      <p class="small mt-2">Mencari senarai atlet...</p>
     </div>
   </div>
 
-  <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwlyOlL-YJfe1u9bUlf_a26VkN63G15jcdBY2Tz5l_3bwjtp1jPzdanowXffM3Jj2-tag/exec";
-    let atletData = [];
+  <div id="divInput" style="display:none" class="card p-4 shadow">
+    <h5 class="mb-3 font-weight-bold">Masukkan Keputusan: <span id="txtAcara" class="text-primary"></span></h5>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Nama & Sekolah</th>
+            <th width="150">Catatan</th>
+            <th width="100">Rank</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyPetugas"></tbody>
+      </table>
+    </div>
+    
+    <div class="d-flex justify-content-between mt-3">
+      <button class="btn btn-info btn-lg" onclick="kiraRank()">1. KIRA RANKING</button>
+      <button class="btn btn-success btn-lg" id="btnSimpan" disabled onclick="hantar()">2. SIMPAN RASMI</button>
+    </div>
+    <p class="small text-muted mt-3">* Larian: Masa terendah adalah Rank 1. <br>* Padang: Jarak tertinggi adalah Rank 1.</p>
+  </div>
+</div>
 
-    async function cariAtlet() {
-      const acara = document.getElementById("selAcara").value;
-      const res = await fetch(`${GAS_URL}?action=getAtletAcara`, { method: 'POST', body: JSON.stringify({ acara: acara }) });
-      atletData = await res.json();
+<script>
+  // GANTIKAN DENGAN URL WEB APP GAS ANDA
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbwlyOlL-YJfe1u9bUlf_a26VkN63G15jcdBY2Tz5l_3bwjtp1jPzdanowXffM3Jj2-tag/exec";
+
+  // Security Check
+  window.onload = () => {
+    const role = sessionStorage.getItem("role");
+    if (!role || (role.toLowerCase() !== "petugas" && role.toLowerCase() !== "admin")) {
+      window.location.href = "index.html";
+    }
+  };
+
+  async function cariAtlet() {
+    const acara = document.getElementById("selAcara").value;
+    if (!acara) return alert("Sila pilih acara!");
+
+    document.getElementById("loader").style.display = "block";
+    document.getElementById("divInput").style.display = "none";
+
+    try {
+      const res = await fetch(`${GAS_URL}?action=getAtletAcara`, { 
+        method: 'POST', 
+        body: JSON.stringify({ acara: acara }) 
+      });
+      const atletData = await res.json();
       
+      if (atletData.length === 0) {
+        alert("Tiada atlet berdaftar untuk acara ini.");
+        document.getElementById("loader").style.display = "none";
+        return;
+      }
+
+      document.getElementById("txtAcara").innerText = acara;
       document.getElementById("tbodyPetugas").innerHTML = atletData.map((a, i) => `
         <tr>
-          <td>${a.nama}<br><small>${a.sekolah}</small></td>
-          <td><input type="number" step="0.01" class="form-control catatan"></td>
-          <td><input type="text" class="form-control rank" readonly></td>
+          <td><strong>${a.nama}</strong><br><small class="text-muted">${a.sekolah}</small></td>
+          <td><input type="number" step="0.01" class="form-control catatan" placeholder="0.00"></td>
+          <td><input type="text" class="form-control rank font-weight-bold text-center" readonly></td>
         </tr>`).join('');
-      document.getElementById("divInput").style.display = "block";
-    }
-
-    function kiraRank() {
-      const acara = document.getElementById("selAcara").value;
-      const rows = Array.from(document.querySelectorAll("#tbodyPetugas tr"));
-      const skor = rows.map(r => ({ row: r, val: parseFloat(r.querySelector(".catatan").value) || 0 }));
       
-      // Sort: Larian (rendah ke tinggi), Padang (tinggi ke rendah)
-      if (acara.includes("M")) skor.sort((a,b) => a.val - b.val);
-      else skor.sort((a,b) => b.val - a.val);
+      document.getElementById("divInput").style.display = "block";
+    } catch (e) {
+      alert("Ralat memanggil data.");
+    } finally {
+      document.getElementById("loader").style.display = "none";
+    }
+  }
 
-      skor.forEach((s, i) => s.row.querySelector(".rank").value = i + 1);
-      document.getElementById("btnSimpan").disabled = false;
+  function kiraRank() {
+    const acara = document.getElementById("selAcara").value;
+    const rows = Array.from(document.querySelectorAll("#tbodyPetugas tr"));
+    
+    const skor = rows.map(r => ({
+      row: r,
+      val: parseFloat(r.querySelector(".catatan").value) || 0
+    }));
+
+    // Tapis data yang mempunyai catatan sahaja untuk ranking
+    const dataAdaSkor = skor.filter(s => s.val > 0);
+
+    if (acara.includes("M")) {
+      // Larian: Masa paling singkat (kecil) menang
+      dataAdaSkor.sort((a, b) => a.val - b.val);
+    } else {
+      // Padang (Lompat/Lontar): Jarak/Ketinggian paling besar menang
+      dataAdaSkor.sort((a, b) => b.val - a.val);
     }
 
-    async function hantar() {
-      const rows = document.querySelectorAll("#tbodyPetugas tr");
-      const data = Array.from(rows).map(r => ({
-        acara: document.getElementById("selAcara").value,
-        nama: r.querySelector("td").innerText.split('\n')[0],
-        sekolah: r.querySelector("small").innerText,
-        catatan: r.querySelector(".catatan").value,
-        kedudukan: r.querySelector(".rank").value
-      }));
-      await fetch(`${GAS_URL}?action=simpanKeputusan`, { method: 'POST', body: JSON.stringify({ data: data }) });
-      alert("Keputusan Disimpan!");
+    // Setkan ranking hanya pada yang ada skor
+    dataAdaSkor.forEach((s, i) => {
+      s.row.querySelector(".rank").value = i + 1;
+    });
+
+    document.getElementById("btnSimpan").disabled = false;
+  }
+
+  async function hantar() {
+    if (!confirm("Adakah anda pasti keputusan ini sudah semak?")) return;
+    
+    const btn = document.getElementById("btnSimpan");
+    btn.disabled = true;
+    btn.innerText = "Menyimpan...";
+
+    const rows = document.querySelectorAll("#tbodyPetugas tr");
+    const data = Array.from(rows).map(r => ({
+      acara: document.getElementById("selAcara").value,
+      nama: r.querySelector("td strong").innerText,
+      sekolah: r.querySelector("small").innerText,
+      catatan: r.querySelector(".catatan").value,
+      kedudukan: r.querySelector(".rank").value
+    })).filter(d => d.kedudukan !== ""); // Simpan yang ada kedudukan sahaja
+
+    try {
+      await fetch(`${GAS_URL}?action=simpanKeputusan`, { 
+        method: 'POST', 
+        body: JSON.stringify({ data: data }) 
+      });
+      alert("Keputusan Rasmi Berjaya Disimpan!");
       location.reload();
+    } catch (e) {
+      alert("Gagal menyimpan. Cuba lagi.");
+      btn.disabled = false;
+      btn.innerText = "2. SIMPAN RASMI";
     }
-  </script>
+  }
+
+  function logout() {
+    sessionStorage.clear();
+    window.location.href = "index.html";
+  }
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>
-
