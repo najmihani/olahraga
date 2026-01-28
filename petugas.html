@@ -28,17 +28,12 @@
   <div class="card p-4 mb-4">
     <div class="row">
       <div class="col-md-8 mb-2">
-        <select id="selAcara" class="form-control form-control-lg">
-          <option value="">-- Pilih Acara --</option>
-          <option value="100M">100M (Larian)</option>
-          <option value="200M">200M (Larian)</option>
-          <option value="400M">400M (Larian)</option>
-          <option value="Lompat Jauh">Lompat Jauh (Padang)</option>
-          <option value="Lontar Peluru">Lontar Peluru (Padang)</option>
+        <select id="selAcara" class="form-control">
+          <option value="">-- Memuatkan Acara... --</option>
         </select>
       </div>
       <div class="col-md-4">
-        <button class="btn btn-primary btn-lg btn-block" onclick="cariAtlet()">CARI ATLET</button>
+        <button class="btn btn-primary btn-block" onclick="cariAtlet()">CARI ATLET</button>
       </div>
     </div>
     <div id="loader" class="text-center mt-3">
@@ -63,24 +58,39 @@
     </div>
     
     <div class="d-flex justify-content-between mt-3">
-      <button class="btn btn-info btn-lg" onclick="kiraRank()">1. KIRA RANKING</button>
-      <button class="btn btn-success btn-lg" id="btnSimpan" disabled onclick="hantar()">2. SIMPAN RASMI</button>
+      <button class="btn btn-info" onclick="kiraRank()">1. KIRA RANKING</button>
+      <button class="btn btn-success" id="btnSimpan" disabled onclick="hantar()">2. SIMPAN RASMI</button>
     </div>
     <p class="small text-muted mt-3">* Larian: Masa terendah adalah Rank 1. <br>* Padang: Jarak tertinggi adalah Rank 1.</p>
   </div>
 </div>
 
 <script>
-  // GANTIKAN DENGAN URL WEB APP GAS ANDA
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbwlyOlL-YJfe1u9bUlf_a26VkN63G15jcdBY2Tz5l_3bwjtp1jPzdanowXffM3Jj2-tag/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyTaXVKrGwtzGIRBFMoJfl64AGZB19aYqLAkGzKAIUB1zS4xRnv0DN44bDpGE2dEzjCkA/exec";
 
-  // Security Check
   window.onload = () => {
     const role = sessionStorage.getItem("role");
     if (!role || (role.toLowerCase() !== "petugas" && role.toLowerCase() !== "admin")) {
       window.location.href = "index.html";
     }
+    muatDropdownAcara();
   };
+
+  // FUNGSI BARU: Muat senarai acara dari Database (Tab Acara)
+  async function muatDropdownAcara() {
+    const select = document.getElementById("selAcara");
+    try {
+      const response = await fetch(`${GAS_URL}?action=getAcara`, { method: 'POST', body: "{}" });
+      const data = await response.json();
+      let html = '<option value="">-- Pilih Acara --</option>';
+      data.forEach(nama => {
+        html += `<option value="${nama}">${nama}</option>`;
+      });
+      select.innerHTML = html;
+    } catch (err) {
+      select.innerHTML = '<option value="">Ralat memuatkan acara</option>';
+    }
+  }
 
   async function cariAtlet() {
     const acara = document.getElementById("selAcara").value;
@@ -127,18 +137,15 @@
       val: parseFloat(r.querySelector(".catatan").value) || 0
     }));
 
-    // Tapis data yang mempunyai catatan sahaja untuk ranking
     const dataAdaSkor = skor.filter(s => s.val > 0);
 
-    if (acara.includes("M")) {
-      // Larian: Masa paling singkat (kecil) menang
+    // Larian: Masa rendah (cepat) menang. Padang: Jarak tinggi menang.
+    if (acara.includes("M") || acara.toLowerCase().includes("larian")) {
       dataAdaSkor.sort((a, b) => a.val - b.val);
     } else {
-      // Padang (Lompat/Lontar): Jarak/Ketinggian paling besar menang
       dataAdaSkor.sort((a, b) => b.val - a.val);
     }
 
-    // Setkan ranking hanya pada yang ada skor
     dataAdaSkor.forEach((s, i) => {
       s.row.querySelector(".rank").value = i + 1;
     });
@@ -160,7 +167,7 @@
       sekolah: r.querySelector("small").innerText,
       catatan: r.querySelector(".catatan").value,
       kedudukan: r.querySelector(".rank").value
-    })).filter(d => d.kedudukan !== ""); // Simpan yang ada kedudukan sahaja
+    })).filter(d => d.kedudukan !== "");
 
     try {
       await fetch(`${GAS_URL}?action=simpanKeputusan`, { 
