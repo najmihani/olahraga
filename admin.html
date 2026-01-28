@@ -1,34 +1,171 @@
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin - Sistem Olahraga</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #f0f2f5; padding-top: 20px; }
+    .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: none; margin-bottom: 20px; }
+    .nav-pills .nav-link.active { background-color: #007bff; font-weight: bold; }
+    .header-admin { background: #343a40; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .gold { color: #d4af37; font-weight: bold; }
+    .silver { color: #aaa9ad; font-weight: bold; }
+    .bronze { color: #cd7f32; font-weight: bold; }
+  </style>
 </head>
-<body class="p-4 bg-dark text-white">
-  <div class="container bg-white text-dark p-4 rounded shadow">
-    <h2 class="text-center">DASHBOARD ADMIN</h2>
-    <hr>
-    <h5>Pungutan Pingat Keseluruhan</h5>
-    <table class="table table-bordered mt-3">
-      <thead class="thead-light">
-        <tr><th>Sekolah</th><th>🥇 Emas</th><th>🥈 Perak</th><th>🥉 Gangsa</th></tr>
-      </thead>
-      <tbody id="bodyPingat"></tbody>
-    </table>
-    <button class="btn btn-primary" onclick="loadAdmin()">Refresh Data</button>
+<body>
+
+<div class="container-fluid px-4">
+  <div class="header-admin d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0">DASHBOARD PENTADBIR (ADMIN)</h4>
+      <p class="mb-0 small text-light">Kawalan Keseluruhan Kejohanan</p>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="logout()">LOG KELUAR</button>
   </div>
 
-  <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzDd9V1HW0qJsPiiwlrFfQdGaQ_VFSwkhHhFhsSANApP6fVMdfAXQmUhNZ3ioy2xzoFqw/exec";
-    async function loadAdmin() {
-      const res = await fetch(`${GAS_URL}?action=getPingat`, { method: 'POST', body: "{}" });
-      const data = await res.json();
-      document.getElementById("bodyPingat").innerHTML = data.map(d => `
-        <tr><td>${d.sekolah}</td><td>${d.emas}</td><td>${d.perak}</td><td>${d.gangsa}</td></tr>
-      `).join('');
+  <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="tab-pingat" data-toggle="pill" href="#pills-pingat" role="tab" onclick="loadRumusan()">Pungutan Pingat</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-atlet" data-toggle="pill" href="#pills-atlet" role="tab" onclick="loadSemuaAtlet()">Senarai Penuh Atlet</a>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="pills-pingat" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <h5>Carta Kedudukan Sekolah</h5>
+          <div class="table-responsive mt-3">
+            <table class="table table-striped table-bordered text-center">
+              <thead class="thead-dark">
+                <tr>
+                  <th>Kedudukan</th>
+                  <th>Nama Sekolah</th>
+                  <th class="gold">Emas (🥇)</th>
+                  <th class="silver">Perak (🥈)</th>
+                  <th class="bronze">Gangsa (🥉)</th>
+                </tr>
+              </thead>
+              <tbody id="bodyPingat">
+                <tr><td colspan="5">Memuatkan data pingat...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="pills-atlet" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5>Senarai Pendaftaran Atlet (Semua Sekolah)</h5>
+            <input type="text" id="cariAtlet" class="form-control w-25" placeholder="Cari nama atau sekolah..." onkeyup="tapisJadual()">
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover table-sm" id="jadualAtlet">
+              <thead class="bg-primary text-white">
+                <tr>
+                  <th>Nama Atlet</th>
+                  <th>BIB</th>
+                  <th>Sekolah</th>
+                  <th>Acara</th>
+                </tr>
+              </thead>
+              <tbody id="bodySemuaAtlet">
+                <tr><td colspan="4" class="text-center">Memuatkan data atlet...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // GANTIKAN DENGAN URL WEB APP GAS ANDA
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyEeNgdRF7i7-qYGQs9VbdqYGGEPXARxJfcisp37olYOfuPCe2q5p7Gk54VrGoV4WgaAg/exec"; 
+
+  // Pastikan Admin sudah log masuk
+  window.onload = () => {
+    if(sessionStorage.getItem("role") !== "Admin") {
+      window.location.href = "index.html";
     }
-    window.onload = loadAdmin;
-  </script>
+    loadRumusan();
+  };
+
+  // FUNGSI 1: LOAD PUNGUTAN PINGAT
+  async function loadRumusan() {
+    try {
+      const resp = await fetch(`${GAS_URL}?action=getPingat`, { method: 'POST', body: "{}" });
+      const data = await resp.json();
+      let html = "";
+      if (data.length === 0) {
+        html = "<tr><td colspan='5'>Tiada keputusan direkodkan.</td></tr>";
+      } else {
+        data.forEach((r, i) => {
+          html += `<tr>
+            <td>${i+1}</td>
+            <td class="text-left font-weight-bold">${r.sekolah}</td>
+            <td class="gold">${r.emas}</td>
+            <td class="silver">${r.perak}</td>
+            <td class="bronze">${r.gangsa}</td>
+          </tr>`;
+        });
+      }
+      document.getElementById("bodyPingat").innerHTML = html;
+    } catch (e) {
+      document.getElementById("bodyPingat").innerHTML = "<tr><td colspan='5'>Ralat data.</td></tr>";
+    }
+  }
+
+  // FUNGSI 2: LOAD SEMUA ATLET
+  async function loadSemuaAtlet() {
+    try {
+      const resp = await fetch(`${GAS_URL}?action=getAllAtlet`, { method: 'POST', body: "{}" });
+      const data = await resp.json();
+      let html = "";
+      if (data.length === 0) {
+        html = "<tr><td colspan='4'>Tiada pendaftaran ditemui.</td></tr>";
+      } else {
+        data.forEach(row => {
+          html += `<tr>
+            <td>${row[0]}</td>
+            <td><span class="badge badge-secondary">${row[2]}</span></td>
+            <td>${row[3]}</td>
+            <td>${row[4]}</td>
+          </tr>`;
+        });
+      }
+      document.getElementById("bodySemuaAtlet").innerHTML = html;
+    } catch (e) {
+      document.getElementById("bodySemuaAtlet").innerHTML = "<tr><td colspan='4'>Ralat memuatkan senarai.</td></tr>";
+    }
+  }
+
+  // FUNGSI 3: CARIAN/TAPISAN JADUAL
+  function tapisJadual() {
+    let input = document.getElementById("cariAtlet").value.toUpperCase();
+    let tr = document.getElementById("bodySemuaAtlet").getElementsByTagName("tr");
+    for (let i = 0; i < tr.length; i++) {
+      let text = tr[i].textContent || tr[i].innerText;
+      tr[i].style.display = text.toUpperCase().indexOf(input) > -1 ? "" : "none";
+    }
+  }
+
+  function logout() {
+    sessionStorage.clear();
+    window.location.href = "index.html";
+  }
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
