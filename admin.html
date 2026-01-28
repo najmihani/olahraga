@@ -14,6 +14,7 @@
     .silver { color: #8a8a8a; font-weight: bold; }
     .bronze { color: #ad6d2f; font-weight: bold; }
     .table thead th { vertical-align: middle; text-align: center; }
+    #loaderAcara { display: none; }
   </style>
 </head>
 <body>
@@ -33,6 +34,9 @@
     </li>
     <li class="nav-item">
       <a class="nav-link" id="tab-atlet" data-toggle="pill" href="#pills-atlet" role="tab" onclick="loadSemuaAtlet()">Senarai Penuh Atlet</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-acara" data-toggle="pill" href="#pills-acara" role="tab" onclick="loadAcaraAdmin()">Urus Acara</a>
     </li>
   </ul>
 
@@ -93,25 +97,53 @@
         </div>
       </div>
     </div>
+
+    <div class="tab-pane fade" id="pills-acara" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="font-weight-bold">Pengurusan Acara Kejohanan</h5>
+          <p class="small text-muted">Tambah atau padam acara yang dipertandingkan dalam kejohanan ini.</p>
+          
+          <div class="input-group mb-4 mt-3">
+            <input type="text" id="inputAcara" class="form-control" placeholder="Nama Acara Baru (Contoh: 100M L18)">
+            <div class="input-group-append">
+              <button class="btn btn-success font-weight-bold" onclick="tambahAcara()">TAMBAH ACARA</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="bg-light text-center small font-weight-bold">
+                <tr>
+                  <th class="text-left">NAMA ACARA</th>
+                  <th width="120">TINDAKAN</th>
+                </tr>
+              </thead>
+              <tbody id="bodyAcaraAdmin">
+                <tr><td colspan="2" class="text-center py-4 text-muted">Memuatkan senarai acara...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="loaderAcara" class="text-center mt-2 font-italic small text-primary">Memproses...</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
   // 1. GANTIKAN DENGAN URL WEB APP GAS ANDA
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbwlyOlL-YJfe1u9bUlf_a26VkN63G15jcdBY2Tz5l_3bwjtp1jPzdanowXffM3Jj2-tag/exec"; 
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyTaXVKrGwtzGIRBFMoJfl64AGZB19aYqLAkGzKAIUB1zS4xRnv0DN44bDpGE2dEzjCkA/exec"; 
 
   // 2. SECURITY CHECK & INITIAL LOAD
   window.onload = () => {
     const userRole = sessionStorage.getItem("role");
-    
-    // Semakan Role secara Case-Insensitive
     if (!userRole || userRole.toLowerCase() !== "admin") {
       alert("Akses ditolak. Sila log masuk semula sebagai Admin.");
       sessionStorage.clear();
       window.location.href = "index.html";
       return;
     }
-    
     loadRumusan();
   };
 
@@ -121,7 +153,6 @@
     try {
       const resp = await fetch(`${GAS_URL}?action=getPingat`, { method: 'POST', body: "{}" });
       const data = await resp.json();
-      
       let html = "";
       if (!data || data.length === 0) {
         html = "<tr><td colspan='5'>Tiada rekod keputusan ditemui.</td></tr>";
@@ -142,19 +173,17 @@
     }
   }
 
-  // 4. FUNGSI MUAT SENARAI ATLET (SEMUA SEKOLAH)
+  // 4. FUNGSI MUAT SENARAI ATLET
   async function loadSemuaAtlet() {
     const body = document.getElementById("bodySemuaAtlet");
     try {
       const resp = await fetch(`${GAS_URL}?action=getAllAtlet`, { method: 'POST', body: "{}" });
       const data = await resp.json();
-      
       let html = "";
       if (!data || data.length === 0) {
         html = "<tr><td colspan='4' class='text-center'>Tiada atlet berdaftar.</td></tr>";
       } else {
         data.forEach(row => {
-          // Susunan kolum: [0]Nama, [2]BIB, [3]Sekolah, [4]Acara
           html += `<tr>
             <td class="text-uppercase">${row[0]}</td>
             <td><span class="badge badge-secondary p-2 font-weight-normal">${row[2]}</span></td>
@@ -173,14 +202,79 @@
   function tapisJadual() {
     let input = document.getElementById("cariAtlet").value.toUpperCase();
     let tr = document.getElementById("bodySemuaAtlet").getElementsByTagName("tr");
-    
     for (let i = 0; i < tr.length; i++) {
       let textContent = tr[i].innerText || tr[i].textContent;
       tr[i].style.display = textContent.toUpperCase().indexOf(input) > -1 ? "" : "none";
     }
   }
 
-  // 6. FUNGSI LOGOUT
+  // 6. FUNGSI PENGURUSAN ACARA (BARU)
+  async function loadAcaraAdmin() {
+    const body = document.getElementById("bodyAcaraAdmin");
+    try {
+      const resp = await fetch(`${GAS_URL}?action=getAcara`, { method: 'POST', body: "{}" });
+      const data = await resp.json();
+      let html = "";
+      if (!data || data.length === 0) {
+        html = "<tr><td colspan='2' class='text-center py-3 text-muted'>Tiada acara didaftarkan.</td></tr>";
+      } else {
+        data.forEach(nama => {
+          html += `<tr>
+            <td class="pl-4 font-weight-bold text-uppercase">${nama}</td>
+            <td class="text-center">
+              <button class="btn btn-danger btn-sm px-3" onclick="padamAcara('${nama}')">Padam</button>
+            </td>
+          </tr>`;
+        });
+      }
+      body.innerHTML = html;
+    } catch (e) {
+      body.innerHTML = "<tr><td colspan='2' class='text-danger'>Ralat memuatkan senarai acara.</td></tr>";
+    }
+  }
+
+  async function tambahAcara() {
+    const input = document.getElementById("inputAcara");
+    const loader = document.getElementById("loaderAcara");
+    const nama = input.value.trim();
+    
+    if(!nama) return alert("Sila masukkan nama acara!");
+
+    loader.style.display = "block";
+    try {
+      const resp = await fetch(`${GAS_URL}?action=tambahAcara`, { 
+        method: 'POST', 
+        body: JSON.stringify({ namaAcara: nama })
+      });
+      const res = await resp.json();
+      input.value = "";
+      loadAcaraAdmin();
+    } catch (e) {
+      alert("Gagal menambah acara.");
+    } finally {
+      loader.style.display = "none";
+    }
+  }
+
+  async function padamAcara(nama) {
+    if(!confirm("Anda pasti ingin memadam acara: " + nama + "?")) return;
+    
+    const loader = document.getElementById("loaderAcara");
+    loader.style.display = "block";
+    try {
+      await fetch(`${GAS_URL}?action=padamAcara`, { 
+        method: 'POST', 
+        body: JSON.stringify({ namaAcara: nama })
+      });
+      loadAcaraAdmin();
+    } catch (e) {
+      alert("Gagal memadam acara.");
+    } finally {
+      loader.style.display = "none";
+    }
+  }
+
+  // 7. FUNGSI LOGOUT
   function logout() {
     if(confirm("Anda pasti ingin log keluar?")) {
       sessionStorage.clear();
@@ -193,4 +287,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
